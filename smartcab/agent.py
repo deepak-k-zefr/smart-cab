@@ -1,0 +1,121 @@
+
+import operator
+          
+import random
+from environment import Agent, Environment
+from planner import RoutePlanner
+from simulator import Simulator
+import math
+c=0
+#### doubtful to remove or not
+class LearningAgent(Agent):
+    """An agent that learns to drive in the smartcab world."""
+
+    def __init__(self, env):
+        super(LearningAgent, self).__init__(env)  
+        self.color = 'red'  # override color
+        self.planner = RoutePlanner(self.env, self)  # simple route planner to get next_waypoint
+
+        # TODO: Initialize any additional variables here
+        self.Q = {}  # QTable
+        self.reward_old = None
+        self.action_old = None
+        self.state_old = None
+        self.counter = 0 #counts steps in the trial
+        self.action_argmax=None
+        ##Initial conditions (Q0)    
+        self.Q_0 = 10  # Q values at the begining
+        self.gamma = 1  #Discount factor
+        self.actions = Environment.valid_actions
+
+        self.epsilon =1-(self.counter/(self.counter+10))
+        self.alpha = 1 #Learning rate counts
+        
+
+    def reset(self, destination=None):
+        self.planner.route_to(destination)
+        # TODO: Prepare for a new trip; reset any variables here, if required
+	print self.counter
+	file.write(str(self.counter))
+	file.write("\n")
+        self.counter = 0
+        
+    def update(self, t):
+
+
+        # Gather inputs for current state
+        self.next_waypoint = self.planner.next_waypoint()  # from route planner, also displayed by simulator
+        inputs = self.env.sense(self)
+        deadline = self.env.get_deadline(self)
+
+        #Define the current state based on inputs sensed
+     	self.state = (inputs['light'], inputs['oncoming'], inputs['left'],self.next_waypoint)
+        print self.state
+
+
+
+ # TODO: Select action according to your policy
+       # print "      Valid actions             "+str(self.actions)
+        print " counter is  "+str(self.counter)
+	Q = self.Q 
+        print '\n'				
+	#print "current state " +str (self.state)
+        print '\n'
+	print "self.state        "+ str(self.state)
+        if self.state in self.Q :  # previously been in this state
+                # small epsilon= exlporation    
+           	if self.epsilon<random.random():
+					action = random.choice(self.actions)
+					print ("Exploratory action      " +str(action))
+	        else:
+                    states=max(self.Q[self.state].iteritems(), key=operator.itemgetter(1))
+		    print "states"+ str(states)
+                    self.action_argmax=states[0]
+                    print "Exploiting action     " +str(self.action_argmax)
+                    action = self.action_argmax
+				                    
+
+        else :  # New state. choose random action
+			Q.update({self.state : {None : self.Q_0, 'forward' : self.Q_0, 'left' : self.Q_0, 'right' : self.Q_0}}) 
+			action = random.choice([None, 'forward', 'left', 'right'])  
+
+        print Q
+# Execute action and get reward
+        reward = self.env.act(self, action)  #what was the reward for the chosen action?
+
+    
+# TODO: Learn policy based on state, action, reward
+        if self.counter > 0 :  #make sure it is not the first step in a trial.
+            Q[self.state_old][self.action_old]= Q[self.state_old][self.action_old] + (self.alpha * (self.reward_old + (self.gamma * (max(Q[self.state].values()))) -  Q[self.state_old][self.action_old]))
+            
+	   
+#Store actions, state and reward as previous_ for use in the next cycle
+        self.state_old = self.state
+        self.action_old = action
+        self.reward_old = reward
+        self.counter += 1
+	
+
+    			
+
+def run():
+    """Run the agent for a finite number of trials."""
+
+    
+    # Set up environment and agent
+    e = Environment()  # create environment (also adds some dummy traffic)
+    a = e.create_agent(LearningAgent)  # create agent
+    e.set_primary_agent(a, enforce_deadline=True)  # set agent to track
+
+    # Now simulate it
+    sim = Simulator(e, update_delay=.0000000001 )  # reduce update_delay to speed up simulation
+    sim.run(n_trials=100)  # press Esc or close pygame window to quit
+
+#print "Counter is  "+self.counter
+    c=0
+if __name__ == '__main__':
+    file=open('counts.txt','w')
+    c=0
+    run()
+
+
