@@ -1,16 +1,15 @@
 
-import operator
-          
+import operator      
 import random
 from environment import Agent, Environment
 from planner import RoutePlanner
 from simulator import Simulator
 import math
-c=0
+
 #### doubtful to remove or not
 class LearningAgent(Agent):
     """An agent that learns to drive in the smartcab world."""
-
+    success=0
     def __init__(self, env):
         super(LearningAgent, self).__init__(env)  
         self.color = 'red'  # override color
@@ -18,60 +17,50 @@ class LearningAgent(Agent):
 
         # TODO: Initialize any additional variables here
         self.Q = {}  # QTable
-        self.reward_old = None
+	#VARIABLES that wil be used for Q Value update        
+	self.reward_old = None
         self.action_old = None
         self.state_old = None
         self.counter = 0 #counts steps in the trial
         self.action_argmax=None
         ##Initial conditions (Q0)    
         self.Q_0 = 10  # Q values at the begining
+	#Different parameters
         self.gamma = 1  #Discount factor
         self.actions = Environment.valid_actions
-
         self.epsilon =1-(self.counter/(self.counter+10))
         self.alpha = 1 #Learning rate counts
-        
+        self.trial_number=0 # counts the number of the trial
 
     def reset(self, destination=None):
         self.planner.route_to(destination)
         # TODO: Prepare for a new trip; reset any variables here, if required
-	print self.counter
-	file.write(str(self.counter))
-	file.write("\n")
-        self.counter = 0
-        
+	self.counter = 0
+        self.trial_number=self.trial_number+1
     def update(self, t):
-
-
         # Gather inputs for current state
         self.next_waypoint = self.planner.next_waypoint()  # from route planner, also displayed by simulator
         inputs = self.env.sense(self)
         deadline = self.env.get_deadline(self)
-
         #Define the current state based on inputs sensed
      	self.state = (inputs['light'], inputs['oncoming'], inputs['left'],self.next_waypoint)
-        print self.state
+
 
 
 
  # TODO: Select action according to your policy
-       # print "      Valid actions             "+str(self.actions)
-        print " counter is  "+str(self.counter)
-	Q = self.Q 
-        print '\n'				
-	#print "current state " +str (self.state)
-        print '\n'
-	print "self.state        "+ str(self.state)
+
+        Q = self.Q 
+
         if self.state in self.Q :  # previously been in this state
                 # small epsilon= exlporation    
            	if self.epsilon<random.random():
 					action = random.choice(self.actions)
-					print ("Exploratory action      " +str(action))
+					#print ("Exploratory action      " +str(action))
 	        else:
                     states=max(self.Q[self.state].iteritems(), key=operator.itemgetter(1))
-		    print "states"+ str(states)
                     self.action_argmax=states[0]
-                    print "Exploiting action     " +str(self.action_argmax)
+                    #print "Exploiting action     " +str(self.action_argmax)
                     action = self.action_argmax
 				                    
 
@@ -79,7 +68,7 @@ class LearningAgent(Agent):
 			Q.update({self.state : {None : self.Q_0, 'forward' : self.Q_0, 'left' : self.Q_0, 'right' : self.Q_0}}) 
 			action = random.choice([None, 'forward', 'left', 'right'])  
 
-        print Q
+
 # Execute action and get reward
         reward = self.env.act(self, action)  #what was the reward for the chosen action?
 
@@ -94,14 +83,18 @@ class LearningAgent(Agent):
         self.action_old = action
         self.reward_old = reward
         self.counter += 1
+	# count and write to files success/failures
+	if self.env.done == True:
+		LearningAgent.success=LearningAgent.success+1
+		file.write('  ({} {}),  '.format("   Succcesful in  :  ",str(self.counter)))
+	elif deadline==0:
+		file.write('  ({} {}),  '.format("   Failed in  :  ",str(self.counter)))
 	
 
     			
 
 def run():
     """Run the agent for a finite number of trials."""
-
-    
     # Set up environment and agent
     e = Environment()  # create environment (also adds some dummy traffic)
     a = e.create_agent(LearningAgent)  # create agent
@@ -112,10 +105,11 @@ def run():
     sim.run(n_trials=100)  # press Esc or close pygame window to quit
 
 #print "Counter is  "+self.counter
-    c=0
+    
 if __name__ == '__main__':
     file=open('counts.txt','w')
-    c=0
+
     run()
+    print " LearningAgent.success                                       "+str(LearningAgent.success)    
 
 

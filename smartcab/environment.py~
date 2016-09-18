@@ -38,7 +38,7 @@ class Environment(object):
         self.status_text = ""
 
         # Road network
-        self.grid_size = (18, 16)  # (cols, rows)
+        self.grid_size = (8, 6)  # (cols, rows)
         self.bounds = (1, 1, self.grid_size[0], self.grid_size[1])
         self.block_size = 100
         self.intersections = OrderedDict()
@@ -204,6 +204,7 @@ class Environment(object):
                 if state['deadline'] >= 0:
                     reward += 10  # bonus
                 self.done = True
+		print "deadline                     "+ str(state['deadline'])
                 print "Environment.act(): Primary agent has reached destination!"  # [debug]
             self.status_text = "state: {}\naction: {}\nreward: {}".format(agent.get_state(), action, reward)
             #print "Environment.act() [POST]: location: {}, heading: {}, action: {}, reward: {}".format(location, heading, action, reward)  # [debug]
